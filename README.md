@@ -1,6 +1,6 @@
 # Finding the Orders That Lose Money
 
-A retail business was making money overall but losing it on thousands of individual orders. This project works out which orders those are, why it happens, and whether you can spot one coming before it's too late.
+A retail business was making money overall but losing it on thousands of individual orders. This project works out which orders those are, why it happens, and whether you can spot one coming before it's too late. 
 
 ---
 
@@ -12,33 +12,31 @@ The public **Superstore** dataset: a US office-supplies retailer's complete sale
 - **21 columns** covering what was sold, to whom, where, when, at what price and discount, and how much profit or loss it made
 - Products span three categories — Furniture, Office Supplies and Technology — split into 17 sub-categories like Chairs, Binders and Phones
 
-Four years of real trading, one row per item sold.
 
 ## The question
 
 Across those four years the business sold £2.3m and kept £286,000 in profit. Healthy enough.
 
-But that net figure hides something. Add up only the orders that lost money and it comes to **£156,131**. The business was making a lot and giving a big chunk of it back, order by order, without anyone tracking which ones.
+But that figure is winners and losers added together. The orders that made money brought in £442,000. The orders that lost money gave back £156,131. So for every £3 earned, about £1 leaked straight back out.
 
 So the question I set out to answer was not "are we profitable". It was: **which orders lose money, and can we see them coming?**
 
 ---
 
-## Step 1 — Checking the data before trusting it
+## Step 1 — Deciding what counts as bad data
 
-Before analysing anything I looked for values that couldn't be real.
+I checked for values that couldn't be real: impossible quantities, discounts above 100%, negative prices. There weren't any, so nothing needed removing.
 
-A handful of orders recorded **10,000 units** when a typical order is 3. A couple recorded **discounts above 100%**, which would mean paying customers to take goods away. Those are data-entry errors and I removed them.
+The decision worth making was what to do with the extreme losses. One order lost £6,599 — a 3D printer with a list price near £3,000, sold at a 70% discount. It sits far outside everything else on a chart, and the usual instinct is to strip outlier like that out before modelling.
 
-I deliberately kept the extreme *losses*, though. One order lost £6,599 — a 3D printer with a list price near £3,000 sold at a 70% discount. That looks like an outlier until you check it, and then it makes complete sense. Those orders are the entire point of the analysis. Deleting them would have deleted the problem.
+I kept them. A high-value item sold at a huge discount loses exactly that much, so it's not an error.
 
-**The principle: remove what's impossible, keep what's merely surprising.**
 
 ## Step 2 — Finding where the money goes
 
 Two things stood out.
 
-**The losses are concentrated, not spread.** Most sub-categories make money. Three don't: **Tables, Bookcases and Supplies** are loss-making across the whole four years. Tables alone loses £17,700. Everything else is broadly fine.
+**The losses are concentrated, not spread.** Most sub-categories make money. Three don't: **Tables, Bookcases and Supplies** are loss-making across the whole four years. Tables alone loses £17,700. 
 
 ![Loss by sub-category](images/04_loss_by_subcategory.png)
 
@@ -54,7 +52,7 @@ Two things stood out.
 
 ![Profit by discount band](images/06_profit_by_discount_band.png)
 
-Below 20% the business makes money. Above 30% it loses money on essentially every order. There's no grey area.
+Below 20% the business makes money. Above 30% it loses money on essentially every order. 
 
 ## Step 3 — The model that didn't work
 
@@ -62,7 +60,7 @@ My first plan was to predict how much profit each order would make. I tried two 
 
 **Ridge Regression** and **Random Forest**. Both failed, and they failed in different ways.
 
-Ridge scored **−0.61** on data it hadn't seen. That number matters: zero would mean "no better than just guessing the average every time", so a negative score means it was *worse than guessing*. Random Forest scored 0.96 on the data it learned from and **−0.06** on new data — it had memorised the answers rather than learned the pattern.
+Ridge scored **−0.61** on data it hadn't seen. That number matters: zero would mean "no better than just guessing the average every time", so a negative score means it was *worse than guessing*. Random Forest scored 0.96 on the data it learned from and **−0.06** on new data, it had memorised the answers rather than learned the pattern.
 
 Why? Profit per order in retail isn't a smooth thing you can predict. It jumps around based on discount tiers and product economics. And this dataset has no cost information, so the model was being asked to work out profit without knowing what anything cost to buy.
 
@@ -72,9 +70,9 @@ Why? Profit per order in retail isn't a smooth thing you can predict. It jumps a
 
 The failure was useful, because it made me ask what the business actually needs.
 
-Nobody needs to know an order will make £4.12. They need to know **whether an order is about to lose money**, early enough to do something about it.
+Rather than figuring if product will make profit, dataset was suitable to answer  **whether an order is about to lose money**, early enough to do something about it.
 
-That's a yes/no question, not a number. And yes/no questions are much easier to answer.
+That's a yes/no question, not a number. 
 
 ## Step 5 — The model that worked
 
@@ -93,7 +91,7 @@ In plain terms: out of 561 loss-making orders it correctly flagged **414**, and 
 
 ![ROC curve](images/roc_curve.png)
 
-Everything it uses — the price, the discount, the quantity, the product type, the region — is known *before* the sale is finalised. So it can score an order while there's still time to change it.
+Everything it uses, the price, the discount, the quantity, the product type, the region  is known *before* the sale is finalised. So it can score an order while there's still time to change it.
 
 The model also shows what actually drives the risk. Discount dominates everything else:
 
